@@ -1,7 +1,8 @@
 DIRS=\
 submodules/jtblatt/duderino\
+submodules/joyent/node\
+submodules/libunwind\
 submodules/jtblatt/perftools\
-submodules/joyent/node
 
 all: 
 	@for d in $(DIRS); do \
@@ -18,8 +19,12 @@ clean:
 bootstrap:
 	git submodule init
 	git submodule update
-	cd submodules/jtblatt/perftools && ./configure || exit 1
+	cd submodules/libunwind && autoreconf -i || exit 1
+	cd submodules/libunwind && env CFLAGS=-U_FORTIFY_SOURCE ./configure || exit 1
+	cd submodules/libunwind && make || exit 1
+	cd submodules/jtblatt/perftools && env LDFLAGS=-L../../libunwind/src/.libs CFLAGS=-I../../libunwind/include/ CXXFLAGS=-I../../libunwind/include/ ./configure || exit 1
 	cd submodules/joyent/node && ./configure || exit 1
+
 
 update_duderino:
 	cd submodules/jtblatt/duderino && (git checkout master || exit 1) && (git pull || exit 1)
