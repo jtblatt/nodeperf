@@ -1,18 +1,26 @@
 try {
     var http = require('http');
+    var fs = require('fs');
+    
     var config = {};
     var logger;
     var responseChunk;
     var numResponses = 0;
-
-    (function readConfig() {
-        var data = require('fs').readFileSync(__dirname + '/echo_server.json');
+    
+    if (3 > process.argv.length) {
+        console.log("usage: node echo_server.js <json config file>");
+        process.exit(1);
+    }
+    
+    (function readConfig() {    
+        var data = fs.readFileSync(process.argv[2]);
 
         config = JSON.parse(data.toString());
-
-        logger = require('./logger.js').getLogger('EchoServer', config.loglevel || 'INFO');
-
+        
         config.port = config.port || 8080;
+
+        logger = require('./logger.js').getLogger('Origin' + config.port, config.loglevel || 'INFO');
+
 
         config.bodySizeBytes = config.bodySizeBytes || 4096;
 
@@ -24,7 +32,7 @@ try {
                 continue;
             }
 
-            responseChunk[i] = 97; // a
+            responseChunk[i] = config.charCode;
         }
     })();
 
@@ -68,9 +76,6 @@ try {
                 logger.debug("RECV_IN:", requestLine);
             }
 
-            // TODO - allocate objects and do computation according to config
-            // file
-
             request.addListener('data', function(chunk) {
                 if (logger.isTraceEnabled()) {
                     logger.trace('Recv chunk of size:', chunk.length);
@@ -78,6 +83,7 @@ try {
             });
 
             request.addListener('end', function() {
+                // Pretend to do work - allocate a bunch of objects and do some computation
                 workSimulator.processTick();
                 
                 if (logger.isTraceEnabled()) {
