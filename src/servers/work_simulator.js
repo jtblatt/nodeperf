@@ -18,6 +18,7 @@ var createWorkSimulator = function(logger, config) {
     
     var tick = 0;   // logical time.   incremented each request
     var allocations = config.allocations;
+    var loops = config.loops;
     var allocationsMap = {};  // maps expiration tick to arrays of allocations
     
     // public methods
@@ -47,6 +48,20 @@ var createWorkSimulator = function(logger, config) {
                 
                 if (logger.isTraceEnabled()) {
                     logger.trace('Allocated', numAllocations, 'of size', sizeBytes, 'at tick', tick);
+                }
+            }
+            
+            // Use the cpu for a bit
+            
+            for (var i = 0; i < loops.length; ++i) {
+                if (0 != (tick % loops[i].perTick)) {
+                    continue;
+                }
+                
+                var x = 0;
+                
+                for (var j = 0; j < loops[i].iterations; ++j) {
+                    x += j;
                 }
             }
             

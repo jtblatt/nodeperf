@@ -10,6 +10,6 @@
         { "sizeBytes": 1048576, "lifetimeTicks": 100, "perTick": 100, "number": 1 }
     ],
     "loops": [
-        { "iterations": 1000, "perTick": 1 }
+        { "iterations": 1000000, "perTick": 1 }
     ]
 }
