@@ -1,15 +1,16 @@
 try {
     var http = require('http');
-    var config;
-    var logger = ...;
+    var config = { };
+    var logger;
 
     (function readConfig() {
-        var fs = require('fs');
+        var data = require('fs').readFileSync(__dirname + '/echo_server.json');
+                
+        config = JSON.parse(data.toString());
 
-        // synchronous read
-        var data = fs.readFileSync(__dirname + '/echo_server.json');
+        logger = require('./logger.js').getLogger('EchoServer', config.loglevel || 'INFO');
 
-        config = JSON.parse(data);
+        config.port = config.port || 8080;
     })();
 
     if (logger.isInfoEnabled()) {
@@ -21,42 +22,90 @@ try {
 
         try {
             if (logger.isTraceEnabled()) {
-                logger.trace("Accepted new connection from " + request.connection.remoteAddress);
+                logger.trace("Accepted new connection from", request.connection.remoteAddress);
             }
 
             requestLine = request.method + ' ' + request.url + ' HTTP/' + request.httpVersion;
 
             if (logger.isTraceEnabled()) {
-                logger.trace("Received request: " + requestLine);
+                logger.trace("RECV_IN:", requestLine);
 
                 for ( var fieldName in request.headers) {
                     if (request.headers.hasOwnProperty(fieldName)) {
-                        logger.trace(fieldName + ': ' + request.headers[fieldName]);
+                        logger.trace("RECV_IN:", fieldName, ':', request.headers[fieldName]);
                     }
                 }
             } else if (logger.isDebugEnabled()) {
-                logger.trace("Received request: " + requestLine);
+                logger.debug("RECV_IN:", requestLine);
+            }  
+
+            // TODO - allocate objects and do computation according to config file
+
+            var contentType = request.headers['content-type'];
+                        
+            if (!contentType) {
+                response.writeHead(200);
+                response.end();
+                
+                if (logger.isTraceEnabled()) {
+                    logger.trace('Response headers sent, no body');
+                }
+                
+                return;
             }
             
-            // TODO
+            response.writeHead(200, {
+                'content-type' : contentType
+            });
+            
+            if (logger.isTraceEnabled()) {
+                logger.trace('Response headers sent');
+            }
+            
+            // TODO - streaming echo response back to client will deadlock if response buffer fills up before client starts reading it
+            
+            request.addListener('data', function(chunk) {
+                if (logger.isTraceEnabled()) {
+                    logger.trace('Sent chunk of size:', chunk.length);
+                }
+                
+                response.write(chunk);
+            });
+
+            request.addListener('end', function() {
+                if (logger.isTraceEnabled()) {
+                    logger.trace('Finished response');
+                }
+                
+                response.end();
+            });
 
         } catch (error) {
-            // TODO
+            var body = {
+                'message' : error.toString()
+            };
+
+            if (error.stack) {
+                body.stack = error.stack;
+            }
+
+            response.writeHead(500, {
+                'Content-Type' : 'application/json; charset=utf-8'
+            });
+            response.end(JSON.stringify(body))
         }
-    });
+    }).listen(config.port);
 
     if (logger.isInfoEnabled()) {
-        logger.info('Listening');
+        logger.info('Listening on port:', config.port);
     }
 
 } catch (error) {
     if (logger) {
-        logger.fatal("Start failed: " + error.stack || error.toString());
+        logger.fatal("Cannot start:", error);
     } else {
         console.log("Start failed: " + error.stack || error.toString());
     }
 
     process.exit(1);
 }
-
-
