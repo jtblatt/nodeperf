@@ -1,24 +1,53 @@
 try {
     var http = require('http');
-    var config = { };
+    var config = {};
     var logger;
+    var responseChunk;
+    var numResponses = 0;
 
     (function readConfig() {
         var data = require('fs').readFileSync(__dirname + '/echo_server.json');
-                
+
         config = JSON.parse(data.toString());
 
         logger = require('./logger.js').getLogger('EchoServer', config.loglevel || 'INFO');
 
         config.port = config.port || 8080;
+
+        config.bodySizeBytes = config.bodySizeBytes || 4096;
+
+        responseChunk = new Buffer(config.bodySizeBytes);
+
+        for ( var i = 0; i < config.bodySizeBytes; ++i) {
+            if (0 == (i % 20)) {
+                responseChunk[i] = 10; // \n
+                continue;
+            }
+
+            responseChunk[i] = 97; // a
+        }
     })();
 
     if (logger.isInfoEnabled()) {
         logger.info('Starting server');
     }
+    
+    var exitFunction = function() {
+        if (logger.isInfoEnabled()) {
+            logger.info('Served ', numResponses, ' requests.');
+        }
+        
+        process.exit(0);
+    };
+    
+    process.on('SIGTERM', exitFunction);
+    process.on('SIGINT', exitFunction);
 
+    var workSimulator = require('./work_simulator.js').createWorkSimulator(logger, config);
+    
     var server = http.createServer(function(request, response) {
         var requestLine;
+        var responseChunkNumber = 0;
 
         try {
             if (logger.isTraceEnabled()) {
@@ -37,47 +66,79 @@ try {
                 }
             } else if (logger.isDebugEnabled()) {
                 logger.debug("RECV_IN:", requestLine);
-            }  
-
-            // TODO - allocate objects and do computation according to config file
-
-            var contentType = request.headers['content-type'];
-                        
-            if (!contentType) {
-                response.writeHead(200);
-                response.end();
-                
-                if (logger.isTraceEnabled()) {
-                    logger.trace('Response headers sent, no body');
-                }
-                
-                return;
             }
-            
-            response.writeHead(200, {
-                'content-type' : contentType
-            });
-            
-            if (logger.isTraceEnabled()) {
-                logger.trace('Response headers sent');
-            }
-            
-            // TODO - streaming echo response back to client will deadlock if response buffer fills up before client starts reading it
-            
+
+            // TODO - allocate objects and do computation according to config
+            // file
+
             request.addListener('data', function(chunk) {
                 if (logger.isTraceEnabled()) {
-                    logger.trace('Sent chunk of size:', chunk.length);
+                    logger.trace('Recv chunk of size:', chunk.length);
                 }
-                
-                response.write(chunk);
             });
 
             request.addListener('end', function() {
-                if (logger.isTraceEnabled()) {
-                    logger.trace('Finished response');
-                }
+                workSimulator.processTick();
                 
-                response.end();
+                if (logger.isTraceEnabled()) {
+                    logger.trace('Finished request body');
+                }
+
+                response.writeHead(200, {
+                    'content-type' : 'text/plain; charset=utf-8'
+                });
+
+                if (logger.isTraceEnabled()) {
+                    logger.trace('Response headers sent');
+                }
+
+                if (responseChunkNumber >= config.numResponseChunks) {
+                    ++numResponses;
+
+                    if (logger.isTraceEnabled()) {
+                        logger.trace('Sent response', numResponses, ', sent 0 chunks');
+                    }
+
+                    response.end();
+                    return;
+                }
+
+                ++responseChunkNumber;
+
+                if (responseChunkNumber >= config.numResponseChunks) {
+                    ++numResponses;
+
+                    if (logger.isTraceEnabled()) {
+                        logger.trace('Sent response', numResponses, ', sent 1 chunk');
+                    }
+
+                    response.end(responseChunk);
+                    return;
+                }
+
+                response.write(responseChunk);
+
+                var timeoutFunction = function() {
+                    ++responseChunkNumber;
+
+                    if (responseChunkNumber >= config.numResponseChunks) {
+                        ++numResponses;
+
+                        if (logger.isTraceEnabled()) {
+                            logger.trace('Sent response', numResponses, ', sent ', responseChunkNumber, ' chunks');
+                        }
+
+                        response.end(responseChunk);
+
+                        return;
+                    }
+
+                    response.write(responseChunk);
+
+                    setTimeout(timeoutFunction, config.delayBetweenResponseChunksMillis);
+                };
+
+                setTimeout(timeoutFunction, config.delayBetweenResponseChunksMillis);
             });
 
         } catch (error) {

@@ -1,8 +1,9 @@
 {
     "port": 8080,
-    "loglevel": "INFO",
-    "streamBody": true,
-    "keepalive": true,
+    "loglevel": "TRACE",
+    "responseChunkSizeBytes": 1024,
+    "numResponseChunks": 10,
+    "delayBetweenResponseChunksMillis": 0,
     "allocations": [
         { "sizeBytes": 256, "lifetimeTicks": 0, "perTick": 1, "number": 10 },
         { "sizeBytes": 1024, "lifetimeTicks": 10, "perTick": 10, "number": 2 },
