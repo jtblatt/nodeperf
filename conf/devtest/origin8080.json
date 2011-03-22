@@ -10,7 +10,5 @@
         { "sizeBytes": 1024, "lifetimeTicks": 10, "perTick": 10, "number": 2 },
         { "sizeBytes": 1048576, "lifetimeTicks": 100, "perTick": 100, "number": 1 }
     ],
-    "loops": [
-        { "iterations": 1000000, "perTick": 1 }
-    ]
+    "compute": {"transpose": {"iterations": 100, "matrixSize": 100}}
 }

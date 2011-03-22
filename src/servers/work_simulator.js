@@ -1,25 +1,18 @@
-
-/**
- *  "allocations": [
-        { "sizeBytes": 256, "lifetimeTicks": 0, "perTick": 1, "number": 10 },
-        { "sizeBytes": 1024, "lifetimeTicks": 10, "perTick": 10, "number": 2 },
-        { "sizeBytes": 1048576, "lifetimeTicks": 100, "perTick": 100, "number": 1 }
-    ],
-    "loops": [
-        { "iterations": 1000, "perTick": 1 }
-    ]
-    
- * @param allocations
- * @param loops
- * @returns
- */
 var createWorkSimulator = function(logger, config) {
     // private methods and variables
     
     var tick = 0;   // logical time.   incremented each request
-    var allocations = config.allocations;
-    var loops = config.loops;
     var allocationsMap = {};  // maps expiration tick to arrays of allocations
+    
+    var matrix = [];    // populate a matrix we'll transpose to simulate cpu work
+    
+    for (var i = 0; i < config.compute.transpose.matrixSize; ++i) {
+        matrix[i] = [];
+        
+        for (var j = 0; j < config.compute.transpose.matrixSize; ++j) {
+            matrix[i][j] = i + j;
+        }
+    }
     
     // public methods
 
@@ -27,14 +20,14 @@ var createWorkSimulator = function(logger, config) {
         processTick : function() {
             // Do all allocations for this tick
             
-            for (var i = 0; i < allocations.length; ++i) {
-                if (0 != (tick % allocations[i].perTick)) {
+            for (var i = 0; i < config.allocations.length; ++i) {
+                if (0 != (tick % config.allocations[i].perTick)) {
                     continue;
                 }
                 
-                var numAllocations = allocations[i].number;                
-                var expirationTick = tick + allocations[i].lifetimeTicks;
-                var sizeBytes = allocations[i].sizeBytes;
+                var numAllocations = config.allocations[i].number;                
+                var expirationTick = tick + config.allocations[i].lifetimeTicks;
+                var sizeBytes = config.allocations[i].sizeBytes;
                 var allocationArray = allocationsMap[expirationTick];
                 
                 if (!allocationArray) {
@@ -53,15 +46,11 @@ var createWorkSimulator = function(logger, config) {
             
             // Use the cpu for a bit
             
-            for (var i = 0; i < loops.length; ++i) {
-                if (0 != (tick % loops[i].perTick)) {
-                    continue;
-                }
-                
-                var x = 0;
-                
-                for (var j = 0; j < loops[i].iterations; ++j) {
-                    x += j;
+            for (var i = 0; i < config.compute.transpose.iterations; ++i) {
+                for (var j = 0; j < config.compute.transpose.matrixSize; ++j) {
+                    for (var k = 0; k < config.compute.transpose.matrixSize; ++k) {
+                        matrix[i][j] = matrix[j][i];
+                    }
                 }
             }
             
