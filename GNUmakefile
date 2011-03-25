@@ -2,7 +2,7 @@ DIRS=\
 submodules/jtblatt/duderino\
 submodules/joyent/node\
 submodules/libunwind\
-submodules/jtblatt/perftools\
+submodules/jtblatt/perftools
 
 all: 
 	@for d in $(DIRS); do \
@@ -35,7 +35,10 @@ update_perftools:
 update_node:
 	cd submodules/joyent/node/ && (git checkout master || exit 1) && (git pull || exit 1)
 
-update: update_duderino update_perftools update_node
+update_nodejs-yui3:
+	cd submodules/yui/nodejs-yui3 && (git checkout master || exit 1) && (git pull || exit 1)
+
+update: update_duderino update_perftools update_node update_nodejs-yui3
 
 remake: clean all
 

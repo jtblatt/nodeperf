@@ -10,3 +10,6 @@
 [submodule "submodules/libunwind"]
 	path = submodules/libunwind
 	url = git://git.sv.gnu.org/libunwind.git
+[submodule "submodules/yui/nodejs-yui3"]
+	path = submodules/yui/nodejs-yui3
+	url = git://github.com/yui/nodejs-yui3.git
