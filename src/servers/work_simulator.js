@@ -5,7 +5,7 @@ var createWorkSimulator = function(logger, config) {
     var allocationsMap = {}; // maps expiration tick to arrays of allocations
 
     var matrix = []; // populate a matrix we'll transpose to simulate cpu
-                        // work
+    // work
 
     for ( var i = 0; i < config.compute.transpose.matrixSize; ++i) {
         matrix[i] = [];
@@ -42,6 +42,22 @@ var createWorkSimulator = function(logger, config) {
 
                 if (logger.isTraceEnabled()) {
                     logger.trace('Allocated', numAllocations, 'of size', sizeBytes, 'at tick', tick);
+                }
+            }
+
+            if (logger.isTraceEnabled()) {
+                for ( var tickNumber in allocationsMap) {
+                    if (!allocationsMap.hasOwnProperty(tickNumber)) {
+                        continue;
+                    }
+
+                    var array = allocationsMap[tickNumber];
+
+                    if (!array) {
+                        continue;
+                    }
+
+                    logger.trace('Tick', tickNumber, 'has', array.length, 'allocations');
                 }
             }
 

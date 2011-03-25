@@ -1,7 +1,7 @@
 var getLogger = function(name, levelString, formatter, appender) {
 
 	// private methods and variables
-    
+
     var util = require('util');
 
 	var pid = process.pid;

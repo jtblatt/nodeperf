@@ -5,7 +5,7 @@ try {
     var config = {};
     var logger;
     var numResponses = 0;
-    
+
     if (3 > process.argv.length) {
         console.log("usage: node echo_server.js <json config file>");
         process.exit(1);
@@ -68,6 +68,7 @@ try {
                 
                 if (logger.isTraceEnabled()) {
                     logger.trace('RECV_IN: read', chunk.length, 'byte chunk');
+                    //logger.trace('RECV_IN:', chunk.toString());
                 }
                 
                 for (var i = 0; i < outboundRequests.length; ++i) {
@@ -212,6 +213,7 @@ try {
             inboundResponse.end(JSON.stringify(body))
         }
     }).listen(config.port);
+
 
     if (logger.isInfoEnabled()) {
         logger.info('Listening on port:', config.port);
